@@ -1,0 +1,62 @@
+import tensorflow as tf
+import numpy as np
+from tensorflow.examples.tutorials.mnist import input_data
+
+# test_mode 설정 "base", "rot90", "flipud", "fliplr", "scale"
+test_mode = "fliplr"
+
+# read MNIST DB
+mnist = input_data.read_data_sets("data/", one_hot=True)
+print('train dataset:',mnist.train.images.shape,mnist.train.labels.shape)
+print('test datset:',mnist.test.images.shape, mnist.train.labels.shape)
+print('validationi dataset:', mnist.validation.images.shape, mnist.validation.labels.shape)
+
+# placeholder to feed data to graph 28*28=784
+x = tf.placeholder(tf.float32, [None, 784])  # data
+y = tf.placeholder(tf.float32, [None, 10])  # label
+
+# Weight and Bias
+W = tf.Variable(tf.random_normal([784, 10], stddev=0.01))
+
+# Operational graph
+y_ = tf.nn.softmax(tf.matmul(x, W))
+cross_entropy = tf.reduce_mean(-tf.reduce_sum(y * tf.log(y_), reduction_indices=[1]))
+train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
+
+# Data feed
+init = tf.global_variables_initializer()
+sess = tf.Session()
+sess.run(init)
+
+# mini batch operation // train_epoch = 2000, batch_size = 100
+# base cae
+if test_mode == "base":
+	for i in range(2000):
+		batch_xs, batch_ys = mnist.train.next_batch(100)
+		sess.run(train_step, feed_dict={x: batch_xs, y: batch_ys})
+
+# rotation case
+if test_mode == "rot90":
+	for i in range(2000):
+		batch_xs, batch_ys = mnist.train.next_batch(200)
+		batch_xs = np.rot90(batch_xs).T
+		sess.run(train_step, feed_dict={x: batch_xs, y: batch_ys})
+
+# flip up down case
+if test_mode == "flipud":
+	for i in range(2000):
+		batch_xs, batch_ys = mnist.train.next_batch(100)
+		batch_xs = np.flipud(batch_xs)
+		sess.run(train_step, feed_dict={x: batch_xs, y: batch_ys})
+
+# flip left right case
+if test_mode == "fliplr":
+	for i in range(2000):
+		batch_xs, batch_ys = mnist.train.next_batch(100)
+		batch_xs = np.fliplr(batch_xs)
+		sess.run(train_step, feed_dict={x: batch_xs, y: batch_ys})
+
+# Verification
+correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+print("accuracy = ", sess.run(accuracy, feed_dict={x: mnist.test.images, y: mnist.test.labels}))
